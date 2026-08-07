@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2>{{ titulo_inventario|default:'Inventario de Productos' }}</h2>
+
+{% if total_stock_bajo > 0 %}
+<div class="alert alert-warning" role="alert">
+<strong>Alerta:</strong> Hay {{ total_stock_bajo }} producto(s) con stock bajo.
+{% for p in productos_stock_bajo %}
+<span class="badge text-bg-danger ms-1">{{ p.nombre }} ({{ p.stock }}/{{ p.stock_minimo }})</span>
+{% endfor %}
+</div>
+{% endif %}
+
+<a href="{{ crear_url|default:'/crear_producto/' }}" class="btn btn-primary mb-3">
+Agregar Producto
+</a>
+
+<div class="card mb-3">
+<div class="card-body">
+<label class="form-label" for="resumenModelos">Total por modelo</label>
+<select id="resumenModelos" class="form-select">
+<option value="" {% if not modelo_filtro %}selected{% endif %}>Seleccione modelo</option>
+{% for item in totales_por_modelo %}
+{% if item.modelo__nombre %}
+<option value="{{ item.modelo__nombre }}" {% if modelo_filtro == item.modelo__nombre %}selected{% endif %}>{{ item.modelo__nombre }} ({{ item.total }})</option>
+{% else %}
+<option value="__sin_modelo__" {% if modelo_filtro == '__sin_modelo__' %}selected{% endif %}>Sin modelo ({{ item.total }})</option>
+{% endif %}
+{% endfor %}
+</select>
+</div>
+</div>
+
+<div class="card mb-3">
+<div class="card-body">
+<label class="form-label" for="selectorProducto">Ver detalle de producto</label>
+<select id="selectorProducto" class="form-select">
+<option value="">Seleccione producto</option>
+{% for producto in productos %}
+<option value="{{ producto.id }}">{{ producto.nombre }} - {{ producto.codigo }}</option>
+{% endfor %}
+</select>
+</div>
+</div>
+
+<table class="table table-striped">
+
+<thead class="table-dark">
+
+<tr>
+
+<th>Codigo</th>
+<th>Nombre</th>
+<th>Categoria</th>
+<th>Cantidad</th>
+<th>Metraje</th>
+<th>Fecha ingreso</th>
+<th>Fecha pedido factura</th>
+<th>Acciones</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+{% for producto in productos %}
+
+<tr {% if producto.stock_bajo %}class="table-warning"{% endif %}>
+
+<td>{{ producto.codigo }}</td>
+<td>{{ producto.nombre }}</td>
+<td>{{ producto.categoria }}</td>
+<td>
+{{ producto.stock }}
+{% if producto.stock_bajo %}
+<span class="badge text-bg-danger ms-1">Bajo minimo ({{ producto.stock_minimo }})</span>
+{% endif %}
+</td>
+<td>
+{% if producto.metraje > 0 %}
+{{ producto.metraje|floatformat:2 }} m
+{% else %}
+-
+{% endif %}
+</td>
+<td>{{ producto.fecha_ingreso }}</td>
+<td>{{ producto.fecha_pedido_factura|default:'-' }}</td>
+
+<td>
+
+<a href="{{ detalle_prefix|default:'/producto/' }}{{producto.id}}/" class="btn btn-info btn-sm">
+Ver
+</a>
+
+<a href="{{ editar_prefix|default:'/editar_producto/' }}{{producto.id}}/" class="btn btn-warning btn-sm">
+Editar
+</a>
+
+<a href="{{ eliminar_prefix|default:'/eliminar_producto/' }}{{producto.id}}/" class="btn btn-danger btn-sm">
+Eliminar
+</a>
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+<script>
+document.getElementById("resumenModelos").addEventListener("change", function () {
+const valor = this.value
+const params = new URLSearchParams(window.location.search)
+if (valor) {
+params.set("modelo", valor)
+} else {
+params.delete("modelo")
+}
+window.location.href = `${window.location.pathname}?${params.toString()}`
+})
+
+document.getElementById("selectorProducto").addEventListener("change", function () {
+if (this.value) {
+const detallePrefix = "{{ detalle_prefix|default:'/producto/' }}"
+window.location.href = `${detallePrefix}${this.value}/`
+}
+})
+</script>
+
+{% endblock %}

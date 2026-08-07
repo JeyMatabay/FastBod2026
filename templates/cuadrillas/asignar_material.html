@@ -1,0 +1,284 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2 class="mb-4">Asignar Material a Cuadrilla</h2>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert {% if message.tags == 'success' %}alert-success{% else %}alert-danger{% endif %}">
+            {{ message }}
+        </div>
+    {% endfor %}
+{% endif %}
+
+<div class="card shadow">
+<div class="card-body">
+
+<form method="POST" id="form-asignacion-multiple">
+{% csrf_token %}
+
+<div class="row g-3 align-items-end mb-4">
+    <div class="col-12 col-md-6">
+        <label class="form-label fw-semibold">Cuadrilla</label>
+        <select class="form-select" name="cuadrilla" required>
+            <option value="">---------</option>
+            {% for c in cuadrillas %}
+                <option value="{{ c.id }}">{{ c.nombre }}{% if c.responsable %} - {{ c.responsable.username }}{% endif %}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-12 col-md-6 text-md-end">
+        <button type="button" id="btn-agregar-linea" class="btn btn-outline-primary">
+            <i class="bi bi-plus-circle me-1"></i>Agregar linea
+        </button>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-bordered align-middle" id="tabla-lineas">
+        <thead class="table-light">
+            <tr>
+                <th style="min-width: 250px;">Producto</th>
+                <th style="width: 120px;">Stock</th>
+                <th style="width: 120px;">Cantidad</th>
+                <th style="min-width: 170px;">Metraje (fibra)</th>
+                <th style="min-width: 320px;">Identificadores (activos, fibra y codigo unico)</th>
+                <th style="width: 90px;">Accion</th>
+            </tr>
+        </thead>
+        <tbody id="lineas-body"></tbody>
+    </table>
+</div>
+
+<div class="d-flex gap-2 mt-3">
+    <button class="btn btn-success" type="submit">
+        <i class="bi bi-check-circle me-1"></i>Asignar todo
+    </button>
+    <a href="{% url 'lista_asignaciones' %}" class="btn btn-outline-secondary">Cancelar</a>
+</div>
+
+<template id="tpl-linea">
+<tr class="linea-item">
+    <td>
+        <input type="text" class="form-control form-control-sm producto-search mb-2" placeholder="Buscar producto, marca o modelo...">
+        <select class="form-select producto-select" name="producto[]" required>
+            <option value="">---------</option>
+            {% for p in productos %}
+                <option value="{{ p.id }}"
+                        data-nombre="{{ p.nombre|default:''|lower }}"
+                        data-codigo="{{ p.codigo|default:''|lower }}"
+                    data-categoria="{{ p.categoria.nombre|default:''|lower }}"
+                        data-marca="{{ p.marca.nombre|default:''|lower }}"
+                        data-modelo="{{ p.modelo.nombre|default:''|lower }}">
+                    {{ p.nombre }} ({{ p.codigo }})
+                    {% if p.marca %} - {{ p.marca.nombre }}{% endif %}
+                    {% if p.modelo %} / {{ p.modelo.nombre }}{% endif %}
+                </option>
+            {% endfor %}
+        </select>
+        <small class="text-muted d-block mt-1 categoria-text"></small>
+    </td>
+    <td>
+        <span class="stock-text fw-semibold">0</span>
+    </td>
+    <td>
+        <input type="number" min="1" class="form-control" name="cantidad[]" required>
+    </td>
+    <td>
+        <input type="number" min="0" step="0.01" class="form-control metraje-input" name="metraje[]" placeholder="Solo fibra" disabled readonly>
+    </td>
+    <td>
+        <input type="text" class="form-control form-control-sm ident-search mb-2" placeholder="Buscar serial, MAC o codigo bobina..." disabled>
+        <select class="form-select ident-select" multiple size="5" disabled></select>
+        <input type="hidden" class="ident-hidden" name="identificadores[]" value="">
+        <small class="text-muted ident-help d-block mt-1">Disponible para equipos activos, productos con metraje y categorias por codigo unico.</small>
+    </td>
+    <td class="text-center">
+        <button type="button" class="btn btn-outline-danger btn-sm btn-eliminar-linea">
+            <i class="bi bi-trash"></i>
+        </button>
+    </td>
+</tr>
+</template>
+
+</form>
+
+</div>
+
+</div>
+
+<script>
+const productosConfig = JSON.parse('{{ productos_config_json|escapejs }}');
+const productoPreseleccionado = '{{ producto_preseleccionado|default:"" }}';
+const lineasBody = document.getElementById('lineas-body');
+const tplLinea = document.getElementById('tpl-linea');
+const btnAgregarLinea = document.getElementById('btn-agregar-linea');
+const formAsignacion = document.getElementById('form-asignacion-multiple');
+
+function poblarIdentificadores(select, identificadores) {
+    select.innerHTML = '';
+    identificadores.forEach((item) => {
+        const option = document.createElement('option');
+        option.value = item.id;
+        option.dataset.metraje = item.metraje || 0;
+        option.textContent = item.etiqueta;
+        select.appendChild(option);
+    });
+}
+
+function actualizarLinea(tr) {
+    const productoSearch = tr.querySelector('.producto-search');
+    const productoSelect = tr.querySelector('.producto-select');
+    const stockText = tr.querySelector('.stock-text');
+    const categoriaText = tr.querySelector('.categoria-text');
+    const metrajeInput = tr.querySelector('.metraje-input');
+    const identSearch = tr.querySelector('.ident-search');
+    const identSelect = tr.querySelector('.ident-select');
+    const identHelp = tr.querySelector('.ident-help');
+    const identHidden = tr.querySelector('.ident-hidden');
+
+    const data = productosConfig[productoSelect.value];
+    identHidden.value = '';
+
+    if (!data) {
+        stockText.textContent = '0';
+        categoriaText.textContent = '';
+        metrajeInput.value = '';
+        metrajeInput.disabled = true;
+        metrajeInput.required = false;
+        identSearch.value = '';
+        identSearch.disabled = true;
+        identSelect.disabled = true;
+        identSelect.innerHTML = '';
+        identHelp.textContent = 'Disponible para equipos activos, productos con metraje y categorias por codigo unico.';
+        return;
+    }
+
+    stockText.textContent = data.stock;
+    const detalleMarcaModelo = [data.marca, data.modelo].filter(Boolean).join(' / ');
+    categoriaText.textContent = `Categoria: ${data.categoria || 'Sin categoria'}${detalleMarcaModelo ? ' | ' + detalleMarcaModelo : ''}`;
+
+    metrajeInput.disabled = !data.es_fibra;
+    metrajeInput.required = !!data.es_fibra;
+    if (!data.es_fibra) {
+        metrajeInput.value = '';
+    }
+
+    if (data.es_activo || data.es_fibra || data.es_codigo_unico) {
+        identSearch.disabled = false;
+        identSelect.disabled = false;
+        poblarIdentificadores(identSelect, data.identificadores || []);
+        identHelp.textContent = data.es_activo
+            ? 'Seleccione un serial/MAC por cada unidad.'
+            : (data.es_fibra
+                ? 'Seleccione un codigo unico de bobina/cable por cada unidad.'
+                : 'Seleccione un codigo unico por cada unidad.');
+    } else {
+        identSearch.value = '';
+        identSearch.disabled = true;
+        identSelect.disabled = true;
+        identSelect.innerHTML = '';
+        identHelp.textContent = 'Este producto no requiere identificadores.';
+    }
+}
+
+function filtrarProductos(tr) {
+    const productoSearch = tr.querySelector('.producto-search');
+    const productoSelect = tr.querySelector('.producto-select');
+    const termino = (productoSearch.value || '').toLowerCase().trim();
+
+    Array.from(productoSelect.options).forEach((option, index) => {
+        if (index === 0) {
+            option.hidden = false;
+            return;
+        }
+
+        const campos = [
+            option.dataset.nombre || '',
+            option.dataset.codigo || '',
+            option.dataset.categoria || '',
+            option.dataset.marca || '',
+            option.dataset.modelo || '',
+            option.textContent.toLowerCase(),
+        ];
+
+        const visible = !termino || campos.some((campo) => campo.includes(termino));
+        option.hidden = !visible;
+    });
+}
+
+function filtrarIdentificadores(tr) {
+    const identSearch = tr.querySelector('.ident-search');
+    const identSelect = tr.querySelector('.ident-select');
+    const termino = (identSearch.value || '').toLowerCase().trim();
+
+    Array.from(identSelect.options).forEach((option) => {
+        const visible = !termino || option.text.toLowerCase().includes(termino);
+        option.hidden = !visible;
+    });
+}
+
+function actualizarMetrajeDesdeIdentificadores(tr) {
+    const productoSelect = tr.querySelector('.producto-select');
+    const identSelect = tr.querySelector('.ident-select');
+    const metrajeInput = tr.querySelector('.metraje-input');
+    const data = productosConfig[productoSelect.value];
+
+    if (!data || !data.es_fibra) {
+        metrajeInput.value = '';
+        return;
+    }
+
+    const seleccionados = Array.from(identSelect.selectedOptions);
+    let total = 0;
+    seleccionados.forEach((option) => {
+        total += parseFloat(option.dataset.metraje || '0') || 0;
+    });
+    metrajeInput.value = total > 0 ? total.toFixed(2) : '';
+}
+
+function crearLinea(preseleccion = '') {
+    const fragment = tplLinea.content.cloneNode(true);
+    const tr = fragment.querySelector('tr');
+
+    const productoSelect = tr.querySelector('.producto-select');
+    const productoSearch = tr.querySelector('.producto-search');
+    const btnEliminar = tr.querySelector('.btn-eliminar-linea');
+
+    if (preseleccion && productosConfig[preseleccion]) {
+        productoSelect.value = preseleccion;
+    }
+
+    productoSelect.addEventListener('change', () => actualizarLinea(tr));
+    productoSearch.addEventListener('input', () => filtrarProductos(tr));
+    tr.querySelector('.ident-search').addEventListener('input', () => filtrarIdentificadores(tr));
+    tr.querySelector('.ident-select').addEventListener('change', () => actualizarMetrajeDesdeIdentificadores(tr));
+
+    btnEliminar.addEventListener('click', () => {
+        tr.remove();
+        if (!lineasBody.querySelector('.linea-item')) {
+            crearLinea();
+        }
+    });
+
+    lineasBody.appendChild(fragment);
+    actualizarLinea(lineasBody.lastElementChild);
+}
+
+btnAgregarLinea.addEventListener('click', () => crearLinea());
+
+formAsignacion.addEventListener('submit', () => {
+    lineasBody.querySelectorAll('.linea-item').forEach((tr) => {
+        const identSelect = tr.querySelector('.ident-select');
+        const identHidden = tr.querySelector('.ident-hidden');
+        actualizarMetrajeDesdeIdentificadores(tr);
+        const ids = Array.from(identSelect.selectedOptions).map((option) => option.value);
+        identHidden.value = ids.join(',');
+    });
+});
+
+crearLinea(productoPreseleccionado);
+</script>
+
+{% endblock %}

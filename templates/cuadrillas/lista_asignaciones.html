@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+.modal-baja .modal-body {
+	max-height: calc(100vh - 220px);
+	overflow-y: auto;
+}
+
+.modal-baja .modal-footer {
+	position: sticky;
+	bottom: 0;
+	background: #fff;
+	z-index: 2;
+	border-top: 1px solid #dee2e6;
+}
+</style>
+
+<title>Asignaciones</title>
+
+</head>
+
+<body class="bg-light">
+
+<div class="container mt-5">
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+<h2 class="mb-0">Material Asignado a Cuadrillas</h2>
+<div class="d-flex gap-2">
+{% if es_admin %}
+<a href="/menu/" class="btn btn-light">&#8962; Inicio</a>
+{% endif %}
+{% if rol_usuario == 'soporte' %}
+<a href="{% url 'asignar_material' %}" class="btn btn-light"><i class="bi bi-send-check-fill me-1"></i>Asignar material</a>
+<a href="{% url 'equipos_retirados' %}" class="btn btn-light"><i class="bi bi-recycle me-1"></i>Equipos retirados</a>
+{% endif %}
+<a href="{% url 'cerrar_sesion' %}" class="btn btn-danger">Cerrar sesión</a>
+</div>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+{{ message }}
+<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endfor %}
+{% endif %}
+
+<div class="accordion" id="accordionCuadrillas">
+
+{% for nombre, materiales in cuadrillas.items %}
+
+<div class="accordion-item">
+
+<h2 class="accordion-header">
+
+<button class="accordion-button collapsed"
+type="button"
+data-bs-toggle="collapse"
+data-bs-target="#cuadrilla{{ forloop.counter }}">
+
+Cuadrilla {{ nombre }}
+
+</button>
+
+</h2>
+
+<div id="cuadrilla{{ forloop.counter }}" class="accordion-collapse collapse">
+
+<div class="accordion-body">
+
+<table class="table table-striped table-bordered">
+
+<thead class="table-dark">
+<tr>
+<th>Producto</th>
+<th>Codigo</th>
+<th>Marca</th>
+<th>Cantidad</th>
+<th>Metraje</th>
+<th>Detalle</th>
+<th>Usuario registro</th>
+<th>Fecha</th>
+<th>Acción</th>
+</tr>
+</thead>
+
+<tbody>
+
+{% for m in materiales %}
+
+<tr>
+<td>{{ m.producto }}</td>
+<td>{{ m.codigo }}</td>
+<td>{{ m.marca }}</td>
+<td>{{ m.cantidad }}</td>
+<td>{% if m.es_fibra %}{{ m.metraje|floatformat:2 }} m{% else %}-{% endif %}</td>
+<td>
+{% if m.identificadores %}
+<div class="d-flex align-items-center gap-2">
+<span class="badge bg-primary">{{ m.identificadores|length }}</span>
+<button
+		type="button"
+		class="btn btn-sm btn-outline-primary"
+		data-bs-toggle="modal"
+		data-bs-target="#detalleSeriales{{ forloop.parentloop.counter }}_{{ forloop.counter }}">
+		Ver detalle
+</button>
+</div>
+
+<div class="modal fade" id="detalleSeriales{{ forloop.parentloop.counter }}_{{ forloop.counter }}" tabindex="-1" aria-hidden="true">
+	<div class="modal-dialog modal-lg modal-dialog-scrollable">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title">Detalle de seriales/MAC - {{ m.producto }}</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body">
+				<ul class="list-group">
+					{% for identificador in m.identificadores %}
+							<li class="list-group-item">
+								{{ identificador.tipo }} - {{ identificador.valor }}
+								{% if identificador.codigo_individual %} | Codigo: {{ identificador.codigo_individual }}{% endif %}
+								{% if identificador.metraje and identificador.metraje > 0 %} | Metraje: {{ identificador.metraje|floatformat:2 }} m{% endif %}
+							</li>
+					{% endfor %}
+				</ul>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+			</div>
+		</div>
+	</div>
+</div>
+{% else %}
+No aplica
+{% endif %}
+</td>
+<td>{{ m.usuario_registro|default:'-' }}</td>
+<td>{{ m.fecha }}</td>
+<td>
+{% if es_admin %}
+<button
+		type="button"
+		class="btn btn-sm btn-success mb-2"
+		data-bs-toggle="modal"
+		data-bs-target="#devolverStock{{ forloop.parentloop.counter }}_{{ forloop.counter }}">
+		Devolver stock
+</button>
+{% endif %}
+
+<button
+		type="button"
+		class="btn btn-sm btn-danger"
+		data-bs-toggle="modal"
+		data-bs-target="#bajaMaterial{{ forloop.parentloop.counter }}_{{ forloop.counter }}">
+		Dar de baja
+</button>
+
+{% if es_admin %}
+<div class="modal fade modal-baja" id="devolverStock{{ forloop.parentloop.counter }}_{{ forloop.counter }}" tabindex="-1" aria-hidden="true">
+	<div class="modal-dialog modal-lg modal-dialog-scrollable">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title">Devolver a stock - {{ m.producto }}</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<form method="POST" action="{% url 'devolver_a_stock' m.id %}">
+				{% csrf_token %}
+				<div class="modal-body">
+					<p class="mb-2"><strong>Cuadrilla:</strong> {{ nombre }}</p>
+					<p class="mb-2"><strong>Producto:</strong> {{ m.producto }} ({{ m.codigo }})</p>
+					<p class="mb-2"><strong>Cantidad asignada:</strong> {{ m.cantidad }}</p>
+
+					{% if m.es_activo and m.identificadores %}
+					<div class="mb-3">
+						<label class="form-label">Seleccione serial/MAC a devolver</label>
+						<select name="identificadores_devolver" class="form-control" multiple size="5" required>
+							{% for identificador in m.identificadores %}
+							<option value="{{ identificador.id }}">
+								{{ identificador.tipo }} - {{ identificador.valor }}
+								{% if identificador.codigo_individual %}| Codigo: {{ identificador.codigo_individual }}{% endif %}
+							</option>
+							{% endfor %}
+						</select>
+						<small class="text-muted">Puede seleccionar uno o varios seriales/MAC.</small>
+					</div>
+					{% elif m.es_fibra %}
+					<p class="mb-2"><strong>Metraje asignado:</strong> {{ m.metraje|floatformat:2 }} m</p>
+					{% if m.identificadores %}
+					<div class="mb-3">
+						<label class="form-label">Seleccione bobina/cable a devolver</label>
+						<select
+							name="identificador_fibra_devolver"
+							id="identificadorFibraDevolver{{ forloop.parentloop.counter }}_{{ forloop.counter }}"
+							class="form-control selector-bobina-devolucion"
+							required
+							onchange="actualizarMaxDevolucionFibra('{{ forloop.parentloop.counter }}_{{ forloop.counter }}')">
+							<option value="">-- Seleccione bobina --</option>
+							{% for identificador in m.identificadores %}
+							<option value="{{ identificador.id }}" data-metraje="{{ identificador.metraje|default:0 }}">
+								{% if identificador.codigo_individual %}{{ identificador.codigo_individual }}{% else %}{{ identificador.valor }}{% endif %}
+								- Disponible: {{ identificador.metraje|floatformat:2 }} m
+							</option>
+							{% endfor %}
+						</select>
+						<small class="text-muted">Seleccione una bobina para validar metraje disponible antes de devolver.</small>
+					</div>
+					{% endif %}
+					<div class="mb-3">
+						<label class="form-label">Metraje a devolver (m)</label>
+						<input
+							type="number"
+							name="metraje_devolver"
+							id="metrajeDevolver{{ forloop.parentloop.counter }}_{{ forloop.counter }}"
+							min="0.01"
+							max="{{ m.metraje|floatformat:2 }}"
+							step="0.01"
+							class="form-control"
+							required>
+					</div>
+					{% else %}
+					<div class="mb-3">
+						<label class="form-label">Cantidad a devolver</label>
+						<input type="number" name="cantidad_devolver" min="1" max="{{ m.cantidad }}" class="form-control" required>
+					</div>
+					{% endif %}
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+					<button type="submit" class="btn btn-success">Confirmar devolucion</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+{% endif %}
+
+<div class="modal fade modal-baja" id="bajaMaterial{{ forloop.parentloop.counter }}_{{ forloop.counter }}" tabindex="-1" aria-hidden="true">
+	<div class="modal-dialog modal-lg modal-dialog-scrollable">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title">Dar de baja - {{ m.producto }}</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<form method="POST" action="{% url 'dar_baja_material' m.id %}">
+				{% csrf_token %}
+				<div class="modal-body">
+					<p class="mb-2"><strong>Cuadrilla:</strong> {{ nombre }}</p>
+					<p class="mb-2"><strong>Producto:</strong> {{ m.producto }} ({{ m.codigo }})</p>
+					<p class="mb-2"><strong>Cantidad asignada:</strong> {{ m.cantidad }}</p>
+					{% if m.es_fibra %}
+					<p class="mb-2"><strong>Metraje asignado:</strong> {{ m.metraje|floatformat:2 }} m</p>
+					{% endif %}
+
+					{% if m.es_fibra %}
+					{% if m.identificadores %}
+					<div class="mb-3">
+						<label class="form-label">Seleccionar codigo de fibra/utp/coaxial</label>
+						<select name="identificadores_baja" class="form-control" size="4" required>
+							{% for identificador in m.identificadores %}
+							<option value="{{ identificador.id }}">
+								{% if identificador.codigo_individual %}{{ identificador.codigo_individual }}{% else %}{{ identificador.valor }}{% endif %}
+								{% if identificador.metraje and identificador.metraje > 0 %} - {{ identificador.metraje|floatformat:2 }} m{% endif %}
+							</option>
+							{% endfor %}
+						</select>
+						<small class="text-muted">Seleccione el identificador para validar codigo y metraje de la baja.</small>
+					</div>
+					{% endif %}
+
+					<div class="mb-3">
+						<label class="form-label">Numero de bobina / Codigo unico</label>
+						<input type="text" name="codigo_bobina" class="form-control" placeholder="Ingrese o seleccione codigo de bobina" list="codigosBobina{{ forloop.parentloop.counter }}_{{ forloop.counter }}">
+						<datalist id="codigosBobina{{ forloop.parentloop.counter }}_{{ forloop.counter }}">
+							{% for identificador in m.identificadores %}
+								{% if identificador.codigo_individual %}
+								<option value="{{ identificador.codigo_individual }}"></option>
+								{% endif %}
+								<option value="{{ identificador.valor }}"></option>
+							{% endfor %}
+						</datalist>
+					</div>
+
+					<div class="mb-3">
+						<label class="form-label">Puntas (m)</label>
+						<div class="input-group">
+							<input
+								type="number"
+								name="punta_inicial"
+								id="puntaInicial{{ forloop.parentloop.counter }}_{{ forloop.counter }}"
+								min="0"
+								step="0.01"
+								class="form-control"
+								placeholder="Punta inicial"
+								oninput="actualizarTotalFibra('{{ forloop.parentloop.counter }}_{{ forloop.counter }}')"
+								required>
+							<span class="input-group-text">-</span>
+							<input
+								type="number"
+								name="punta_final"
+								id="puntaFinal{{ forloop.parentloop.counter }}_{{ forloop.counter }}"
+								min="0"
+								step="0.01"
+								class="form-control"
+								placeholder="Punta final"
+								oninput="actualizarTotalFibra('{{ forloop.parentloop.counter }}_{{ forloop.counter }}')"
+								required>
+						</div>
+					</div>
+
+					{% if m.es_adss %}
+					<div class="mb-3">
+						<label class="form-label">Coordenadas por metraje</label>
+						<div class="row g-2">
+							<div class="col-md-6">
+								<input
+									type="text"
+									name="coord_punta_inicial"
+									class="form-control"
+									maxlength="120"
+									placeholder="Coord. punta inicial"
+									required>
+							</div>
+							<div class="col-md-6">
+								<input
+									type="text"
+									name="coord_punta_final"
+									class="form-control"
+									maxlength="120"
+									placeholder="Coord. punta final"
+									required>
+							</div>
+						</div>
+						<small class="text-muted">Ingrese una coordenada para la punta inicial y otra para la punta final.</small>
+					</div>
+					{% endif %}
+
+					<div class="mb-3">
+						<label class="form-label">Total de metraje a dar de baja (m)</label>
+						<input
+							type="number"
+							name="metraje_baja"
+							id="metrajeBaja{{ forloop.parentloop.counter }}_{{ forloop.counter }}"
+							min="0.01"
+							max="{{ m.metraje|floatformat:2 }}"
+							step="0.01"
+							class="form-control"
+							readonly
+							required>
+					</div>
+					{% else %}
+					<div class="mb-3">
+						<label class="form-label">Cantidad a dar de baja</label>
+						<input type="number" name="cantidad_baja" min="1" max="{{ m.cantidad }}" class="form-control" required>
+					</div>
+					{% endif %}
+
+					{% if m.es_construccion %}
+					<div class="mb-3">
+						<label class="form-label">Utilizado en</label>
+						<select name="utilizado_en_opcion" class="form-select" required>
+							<option value="DANO">DAÑO</option>
+							<option value="CONSTRUCCION">CONSTRUCCION</option>
+						</select>
+					</div>
+
+					<div class="mb-3">
+						<label class="form-label">Cliente (opcional)</label>
+						<input type="text" name="cliente_nombre" class="form-control" placeholder="Buscar cliente por nombre, CT o cedula" maxlength="150" list="clientesDisponibles">
+					</div>
+
+					<div class="mb-3">
+						<label class="form-label">Coordenadas</label>
+						<input type="text" name="coordenadas_baja" class="form-control" maxlength="120" placeholder="Ej: -0.128335, -78.292503" required>
+					</div>
+
+					<div class="mb-3">
+						<label class="form-label">Sector</label>
+						<input type="text" name="sector_baja" class="form-control" maxlength="120" placeholder="Ej: Norte / Sur / Centro" required>
+					</div>
+					{% else %}
+					<div class="mb-3">
+						<label class="form-label">Utilizado en</label>
+						<div class="input-group">
+							<select name="utilizado_en_opcion" id="utilizadoEnOpcion{{ forloop.parentloop.counter }}_{{ forloop.counter }}" class="form-select" style="max-width: 180px;" onchange="setUsoBaja('{{ forloop.parentloop.counter }}_{{ forloop.counter }}', this.value)" required>
+								<option value="Instalacion" selected>Instalacion</option>
+								<option value="Cambio de domicilio">Cambio de domicilio</option>
+								<option value="Cambio">Cambio</option>
+								<option value="Migracion">Migracion</option>
+								<option value="Soporte">Soporte</option>
+							</select>
+							<input type="text" name="cliente_nombre" id="utilizadoEnText{{ forloop.parentloop.counter }}_{{ forloop.counter }}" class="form-control" placeholder="Buscar cliente por nombre, CT o cedula" maxlength="150" list="clientesDisponibles" required>
+						</div>
+					</div>
+					{% endif %}
+
+					{% if not m.es_construccion %}
+					<div class="mb-3 d-none" id="observacionCambioWrap{{ forloop.parentloop.counter }}_{{ forloop.counter }}">
+						<label class="form-label">Detalle del cambio</label>
+						<textarea name="observacion_cambio" id="observacionCambio{{ forloop.parentloop.counter }}_{{ forloop.counter }}" class="form-control" rows="2" maxlength="250" placeholder="Ingrese el detalle del cambio"></textarea>
+					</div>
+					{% endif %}
+
+					{% if m.es_activo and not m.es_construccion %}
+					<div class="mb-3 d-none" id="serialMacRetiradoWrap{{ forloop.parentloop.counter }}_{{ forloop.counter }}">
+						<label class="form-label fw-semibold">Equipo retirado</label>
+						<div class="row g-2 mb-2">
+							<div class="col-md-4">
+								<label class="form-label form-label-sm">Categoria</label>
+								<select name="categoria_retirado" id="categoriaRetirado{{ forloop.parentloop.counter }}_{{ forloop.counter }}" class="form-select form-select-sm">
+									<option value="">-- Categoria --</option>
+									{% for cat in categorias %}
+									<option value="{{ cat.nombre }}">{{ cat.nombre }}</option>
+									{% endfor %}
+								</select>
+							</div>
+							<div class="col-md-4">
+								<label class="form-label form-label-sm">Marca</label>
+								<select name="marca_retirado" id="marcaRetirado{{ forloop.parentloop.counter }}_{{ forloop.counter }}" class="form-select form-select-sm" onchange="filtrarModelosRetirado('{{ forloop.parentloop.counter }}_{{ forloop.counter }}', this.value)">
+									<option value="">-- Marca --</option>
+									{% for mar in marcas %}
+									<option value="{{ mar.nombre }}" data-id="{{ mar.id }}">{{ mar.nombre }}</option>
+									{% endfor %}
+								</select>
+							</div>
+							<div class="col-md-4">
+								<label class="form-label form-label-sm">Modelo</label>
+								<select name="modelo_retirado" id="modeloRetirado{{ forloop.parentloop.counter }}_{{ forloop.counter }}" class="form-select form-select-sm">
+									<option value="">-- Modelo --</option>
+								</select>
+							</div>
+						</div>
+						<div class="row g-2">
+							<div class="col-md-6">
+								<label class="form-label form-label-sm">Serial o MAC del equipo retirado</label>
+								<input type="text" name="serial_mac_retirado" id="serialMacRetirado{{ forloop.parentloop.counter }}_{{ forloop.counter }}" class="form-control form-control-sm" maxlength="120" placeholder="Ej: 7894512 o A1:B2:C3:D4:E5:F6" list="serialMacDisponibles">
+							</div>
+							<div class="col-md-6">
+								<label class="form-label form-label-sm">Codigo del equipo retirado</label>
+								<input type="text" name="codigo_retirado" class="form-control form-control-sm" maxlength="80" placeholder="Ej: F001">
+							</div>
+						</div>
+					</div>
+					{% endif %}
+
+					{% if m.es_activo or m.es_codigo_unico %}
+					<div class="mb-3">
+						<label class="form-label">Estado del equipo</label>
+						<select name="estado_equipo" class="form-select" required>
+							<option value="Nuevo">Nuevo</option>
+							<option value="Utilizado">Utilizado</option>
+						</select>
+					</div>
+					{% endif %}
+
+					{% if m.es_activo and m.identificadores %}
+					<div class="mb-0">
+						<label class="form-label">Seriales usados (seleccione la misma cantidad)</label>
+						<select name="identificadores_baja" class="form-control" multiple size="4">
+							{% for identificador in m.identificadores %}
+							<option value="{{ identificador.id }}">{{ identificador.tipo }} - {{ identificador.valor }}</option>
+							{% endfor %}
+						</select>
+					</div>
+					{% endif %}
+
+					{% if m.es_codigo_unico and m.identificadores %}
+					<div class="mb-0">
+						<label class="form-label">Codigos unicos usados (seleccione la misma cantidad)</label>
+						<select name="identificadores_baja" class="form-control" multiple size="4" required>
+							{% for identificador in m.identificadores %}
+							<option value="{{ identificador.id }}">{{ identificador.valor }}{% if identificador.codigo_individual %} - Codigo: {{ identificador.codigo_individual }}{% endif %}</option>
+							{% endfor %}
+						</select>
+					</div>
+					{% endif %}
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+					<button type="submit" class="btn btn-danger">Confirmar baja</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+</td>
+</tr>
+
+{% endfor %}
+
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+
+{% endfor %}
+
+{% if not cuadrillas %}
+<div class="alert alert-warning mt-3 mb-0">
+No hay materiales asignados para su cuadrilla.
+</div>
+{% endif %}
+
+</div>
+
+<datalist id="clientesDisponibles">
+{% for cliente in clientes %}
+<option
+	value="{{ cliente.nombre }}"
+	label="{{ cliente.ct|default:'-' }}  {{ cliente.cedula|default:'-' }}  {{ cliente.nombre }}"
+>
+	{{ cliente.ct|default:'-' }}  {{ cliente.cedula|default:'-' }}  {{ cliente.nombre }}
+</option>
+{% endfor %}
+</datalist>
+
+<datalist id="serialMacDisponibles">
+{% for valor in serial_mac_sugeridos %}
+<option value="{{ valor }}"></option>
+{% endfor %}
+</datalist>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+var MODELOS_DATA = JSON.parse('{{ modelos_json|default:"[]"|escapejs }}');
+
+function filtrarModelosRetirado(sufijo, marcaNombre) {
+	var select = document.getElementById('modeloRetirado' + sufijo);
+	if (!select) return;
+	// find marca_id from the marca select
+	var marcaSelect = document.getElementById('marcaRetirado' + sufijo);
+	var marcaId = null;
+	if (marcaSelect) {
+		var opt = marcaSelect.options[marcaSelect.selectedIndex];
+		marcaId = opt ? parseInt(opt.getAttribute('data-id')) : null;
+	}
+	select.innerHTML = '<option value="">-- Modelo --</option>';
+	MODELOS_DATA.forEach(function(m) {
+		if (!marcaId || m.marca_id === marcaId) {
+			var o = document.createElement('option');
+			o.value = m.nombre;
+			o.textContent = m.nombre;
+			select.appendChild(o);
+		}
+	});
+}
+
+function setUsoBaja(sufijo, valor) {
+	var text = document.getElementById('utilizadoEnText' + sufijo);
+	var opcion = document.getElementById('utilizadoEnOpcion' + sufijo);
+	var observacionWrap = document.getElementById('observacionCambioWrap' + sufijo);
+	var observacion = document.getElementById('observacionCambio' + sufijo);
+	var serialMacWrap = document.getElementById('serialMacRetiradoWrap' + sufijo);
+	var serialMac = document.getElementById('serialMacRetirado' + sufijo);
+	if (text) {
+		text.focus();
+	}
+	if (opcion) {
+		opcion.value = valor;
+	}
+	if (observacionWrap && observacion) {
+		if (valor === 'Cambio') {
+			observacionWrap.classList.remove('d-none');
+			observacion.required = true;
+		} else {
+			observacionWrap.classList.add('d-none');
+			observacion.required = false;
+			observacion.value = '';
+		}
+	}
+	if (serialMacWrap && serialMac) {
+		if (valor === 'Cambio') {
+			serialMacWrap.classList.remove('d-none');
+			serialMac.required = true;
+		} else {
+			serialMacWrap.classList.add('d-none');
+			serialMac.required = false;
+			serialMac.value = '';
+			// reset extra retirado fields
+			var cat = serialMacWrap.querySelector('[name="categoria_retirado"]');
+			var mar = serialMacWrap.querySelector('[name="marca_retirado"]');
+			var mod = serialMacWrap.querySelector('[name="modelo_retirado"]');
+			var cod = serialMacWrap.querySelector('[name="codigo_retirado"]');
+			if (cat) cat.value = '';
+			if (mar) { mar.value = ''; filtrarModelosRetirado(sufijo, ''); }
+			if (cod) cod.value = '';
+		}
+	}
+}
+
+function actualizarTotalFibra(sufijo) {
+	var inicial = document.getElementById('puntaInicial' + sufijo);
+	var final = document.getElementById('puntaFinal' + sufijo);
+	var total = document.getElementById('metrajeBaja' + sufijo);
+
+	if (!inicial || !final || !total) {
+		return;
+	}
+
+	var valorInicial = parseFloat(inicial.value || '0');
+	var valorFinal = parseFloat(final.value || '0');
+
+	if (!Number.isFinite(valorInicial) || !Number.isFinite(valorFinal)) {
+		return;
+	}
+
+	var diferencia = Math.abs(valorFinal - valorInicial);
+	if (diferencia > 0) {
+		total.value = diferencia.toFixed(2);
+	} else {
+		total.value = '';
+	}
+}
+
+function actualizarMaxDevolucionFibra(sufijo) {
+	var selector = document.getElementById('identificadorFibraDevolver' + sufijo);
+	var inputMetraje = document.getElementById('metrajeDevolver' + sufijo);
+
+	if (!selector || !inputMetraje) {
+		return;
+	}
+
+	var opcion = selector.options[selector.selectedIndex];
+	if (!opcion) {
+		return;
+	}
+
+	var disponible = parseFloat(opcion.getAttribute('data-metraje') || '0');
+	if (Number.isFinite(disponible) && disponible > 0) {
+		inputMetraje.max = disponible.toFixed(2);
+		inputMetraje.value = disponible.toFixed(2);
+	}
+}
+
+document.querySelectorAll('.selector-bobina-devolucion').forEach(function(selector) {
+	var sufijo = selector.id.replace('identificadorFibraDevolver', '');
+	actualizarMaxDevolucionFibra(sufijo);
+});
+</script>
+
+</body>
+</html>

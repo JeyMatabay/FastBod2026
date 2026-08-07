@@ -1,0 +1,244 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+<h2>{{ titulo_form|default:'Editar Producto' }}</h2>
+
+<form method="POST" class="card p-4">
+
+{% csrf_token %}
+
+{% if form.errors %}
+<div class="alert alert-danger">
+No se pudo actualizar el producto. Revise los campos marcados.
+</div>
+{% endif %}
+
+<div class="mb-3">
+<label>Nombre</label>
+{{ form.nombre }}
+{{ form.nombre.errors }}
+</div>
+
+<div class="mb-3">
+<label>Categoria</label>
+{{ form.categoria }}
+{{ form.categoria.errors }}
+</div>
+
+<div class="mb-3">
+<label>Nueva categoria (opcional)</label>
+{{ form.nueva_categoria }}
+{{ form.nueva_categoria.errors }}
+</div>
+
+<div class="mb-3 campo-activo">
+<label>Marca</label>
+{{ form.marca }}
+{{ form.marca.errors }}
+</div>
+
+<div class="mb-3 campo-activo">
+<label>Nueva marca (opcional)</label>
+{{ form.nueva_marca }}
+{{ form.nueva_marca.errors }}
+</div>
+
+<div class="mb-3 campo-activo">
+<label>Modelo</label>
+{{ form.modelo }}
+{{ form.modelo.errors }}
+</div>
+
+<div class="mb-3 campo-activo">
+<label>Nuevo modelo (opcional)</label>
+{{ form.nuevo_modelo }}
+{{ form.nuevo_modelo.errors }}
+</div>
+
+<div class="mb-3 campo-fibra">
+<label>Tipo de fibra</label>
+{{ form.tipo_fibra }}
+{{ form.tipo_fibra.errors }}
+</div>
+
+<div class="mb-3 campo-fibra">
+<label>Nuevo tipo de fibra (opcional)</label>
+{{ form.nuevo_tipo_fibra }}
+{{ form.nuevo_tipo_fibra.errors }}
+</div>
+
+<div class="mb-3 campo-fibra">
+<label>Número de hilos</label>
+{{ form.hilo }}
+{{ form.hilo.errors }}
+</div>
+
+<div class="mb-3 campo-comun">
+<label>Código</label>
+{{ form.codigo }}
+{{ form.codigo.errors }}
+</div>
+
+<div class="mb-3 campo-activo">
+<label>MAC</label>
+{{ form.mac }}
+{{ form.mac.errors }}
+</div>
+
+<div class="mb-3 campo-activo">
+<label>Serial ingreso</label>
+{{ form.serial }}
+{{ form.serial.errors }}
+</div>
+
+<div class="mb-3 campo-pasivo">
+<label>Metraje por bobina</label>
+{{ form.metraje_por_bobina }}
+{{ form.metraje_por_bobina.errors }}
+</div>
+
+<div class="mb-3 campo-pasivo">
+<label>Metraje total</label>
+{{ form.metraje }}
+{{ form.metraje.errors }}
+</div>
+
+<div class="mb-3 campo-comun">
+<label>Cantidad</label>
+{{ form.stock }}
+{{ form.stock.errors }}
+</div>
+
+<div class="mb-3 campo-comun campo-material-extra">
+<label>Fecha de pedido de factura</label>
+{{ form.fecha_pedido_factura }}
+{{ form.fecha_pedido_factura.errors }}
+</div>
+
+<hr>
+<div class="mb-3 campo-material-extra">
+<label class="fw-semibold">Proveedor</label>
+{{ form.proveedor }}
+</div>
+<div class="mb-3 campo-material-extra">
+<label class="form-label text-muted">O crear nuevo proveedor</label>
+{{ form.nuevo_proveedor }}
+<small class="text-muted">Si escribe aquí se creará automáticamente y se asignará al producto.</small>
+</div>
+
+<button class="btn btn-warning">
+Actualizar
+</button>
+
+<a href="{{ cancelar_url|default:'/productos/' }}" class="btn btn-secondary">
+Cancelar
+</a>
+
+</form>
+
+</div>
+
+<script>
+
+function esCategoriaActiva(categoria){
+const palabras = ["activo", "onu", "onue", "ont", "router", "routher", "modem", "ktv"]
+return palabras.some(p => categoria.includes(p))
+}
+
+function esCategoriaConMetraje(categoria){
+const palabras = ["fibra", "utp", "coaxial", "adss"]
+return palabras.some(p => categoria.includes(p))
+}
+
+function esCategoriaMaterial(categoria){
+return categoria.includes("material")
+}
+
+function esCategoriaFibra(categoria){
+const palabras = ["fibra", "cable", "drop", "adss", "fo", "hilo", "utp", "coaxial"]
+return palabras.some(p => categoria.includes(p))
+}
+
+function calcularMetrajeTotal(){
+let metrajeInput = document.getElementById("id_metraje_por_bobina")
+let cantidadInput = document.getElementById("id_stock")
+let metrajeTotal = document.getElementById("id_metraje")
+
+if(metrajeInput && cantidadInput && metrajeTotal){
+let metraje = parseFloat(metrajeInput.value) || 0
+let cantidad = parseFloat(cantidadInput.value) || 0
+metrajeTotal.value = (metraje * cantidad).toFixed(2)
+}
+}
+
+function controlarCampos(){
+
+let categoriaSelect = document.getElementById("id_categoria")
+let categoria = categoriaSelect.options[categoriaSelect.selectedIndex]?.text?.toLowerCase() || ""
+let nuevaCategoriaInput = document.getElementById("id_nueva_categoria")
+let nuevaCategoria = nuevaCategoriaInput ? nuevaCategoriaInput.value.toLowerCase().trim() : ""
+if(!categoria && nuevaCategoria){
+categoria = nuevaCategoria
+}
+
+let activos = document.querySelectorAll(".campo-activo")
+let pasivos = document.querySelectorAll(".campo-pasivo")
+let fibra = document.querySelectorAll(".campo-fibra")
+let comunes = document.querySelectorAll(".campo-comun")
+let materialExtra = document.querySelectorAll(".campo-material-extra")
+let campos = document.querySelectorAll("#id_nombre, #id_codigo, #id_mac, #id_serial, #id_stock, #id_marca, #id_nueva_marca, #id_modelo, #id_nuevo_modelo, #id_tipo_fibra, #id_nuevo_tipo_fibra, #id_hilo, #id_metraje_por_bobina, #id_metraje, #id_fecha_pedido_factura, #id_proveedor, #id_nuevo_proveedor")
+
+activos.forEach(c => c.style.display="none")
+pasivos.forEach(c => c.style.display="none")
+fibra.forEach(c => c.style.display="none")
+comunes.forEach(c => c.style.display="none")
+materialExtra.forEach(c => c.style.display="none")
+
+campos.forEach(c => {
+if(c){
+c.disabled = !categoria
+}
+})
+
+if(categoria){
+comunes.forEach(c => c.style.display="block")
+materialExtra.forEach(c => c.style.display="block")
+}
+
+if(esCategoriaActiva(categoria)){
+activos.forEach(c => c.style.display="block")
+}
+
+if(esCategoriaConMetraje(categoria)){
+pasivos.forEach(c => c.style.display="block")
+}
+
+if(esCategoriaFibra(categoria)){
+fibra.forEach(c => c.style.display="block")
+}
+
+if(esCategoriaMaterial(categoria)){
+activos.forEach(c => c.style.display="none")
+pasivos.forEach(c => c.style.display="none")
+fibra.forEach(c => c.style.display="none")
+}
+
+}
+
+document.getElementById("id_categoria").addEventListener("change", controlarCampos)
+document.getElementById("id_nueva_categoria").addEventListener("input", controlarCampos)
+document.getElementById("id_metraje_por_bobina").addEventListener("change", calcularMetrajeTotal)
+document.getElementById("id_metraje_por_bobina").addEventListener("input", calcularMetrajeTotal)
+document.getElementById("id_stock").addEventListener("change", calcularMetrajeTotal)
+document.getElementById("id_stock").addEventListener("input", calcularMetrajeTotal)
+window.onload = function(){
+controlarCampos()
+calcularMetrajeTotal()
+}
+
+</script>
+
+{% endblock %}

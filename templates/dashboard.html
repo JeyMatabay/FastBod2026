@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+<h2><i class="bi bi-speedometer2 me-2"></i>Dashboard Sistema Bodega Fastnett</h2>
+
+{% if total_stock_bajo > 0 %}
+<div class="alert alert-warning" role="alert">
+<strong><i class="bi bi-exclamation-triangle-fill me-1"></i>Stock bajo:</strong> {{ total_stock_bajo }} producto(s) requieren reposicion.
+</div>
+{% endif %}
+
+<div class="row g-3 mb-4">
+
+<div class="col-lg-3 col-md-6">
+
+<div class="card text-white bg-primary mb-3">
+
+<div class="card-body">
+
+<h5><i class="bi bi-box-seam me-2"></i>Productos</h5>
+
+<h2>{{ total_productos }}</h2>
+
+</div>
+
+</div>
+
+</div>
+
+<div class="col-lg-3 col-md-6">
+
+<div class="card text-white bg-success mb-3">
+
+<div class="card-body">
+
+<h5><i class="bi bi-archive-fill me-2"></i>Stock Total</h5>
+
+<h2>{{ total_stock }}</h2>
+
+</div>
+
+</div>
+
+</div>
+
+<div class="col-lg-3 col-md-6">
+
+<div class="card text-white bg-warning mb-3">
+
+<div class="card-body">
+
+<h5><i class="bi bi-people-fill me-2"></i>Cuadrillas</h5>
+
+<h2>{{ total_cuadrillas }}</h2>
+
+</div>
+
+</div>
+
+</div>
+
+<div class="col-lg-3 col-md-6">
+
+<div class="card text-white bg-danger mb-3">
+
+<div class="card-body">
+
+<h5><i class="fas fa-dolly me-2"></i>Material Asignado</h5>
+<h2>{{ total_asignado }}</h2>
+
+<p class="mb-2">{{ porcentaje_asignado }}% del stock total</p>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+{% if total_stock_bajo > 0 %}
+<div class="row g-3">
+
+<div class="col-lg-3 col-md-6">
+
+<div class="card text-white bg-secondary h-100">
+
+<div class="card-body">
+
+<h5><i class="fas fa-exclamation-triangle me-2"></i>Stock Bajo</h5>
+
+<h2>{{ total_stock_bajo }}</h2>
+
+<p class="mb-0">Productos por debajo del minimo configurado.</p>
+
+</div>
+
+</div>
+
+</div>
+
+<div class="col-lg-9">
+
+<div class="card h-100">
+
+<div class="card-header"><i class="bi bi-list-ul me-2"></i>Productos con stock bajo</div>
+
+<ul class="list-group list-group-flush">
+{% for producto in productos_stock_bajo %}
+<li class="list-group-item d-flex justify-content-between align-items-center">
+<span><i class="bi bi-box2-fill me-2 text-secondary"></i>{{ producto.nombre }}</span>
+<span class="badge text-bg-danger">{{ producto.stock }} / minimo {{ producto.stock_minimo }}</span>
+</li>
+{% endfor %}
+</ul>
+
+</div>
+
+</div>
+
+</div>
+
+{% endif %}
+
+</div>
+
+{% endblock %}

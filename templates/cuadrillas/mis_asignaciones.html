@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2>Mis Materiales</h2>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Producto</th>
+            <th>Cantidad</th>
+            <th>Metraje</th>
+            <th>Fecha</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for a in asignaciones %}
+        <tr>
+            <td>{{ a.producto.nombre }}</td>
+            <td>{{ a.cantidad }}</td>
+            <td>{% if a.metraje > 0 %}{{ a.metraje|floatformat:2 }} m{% else %}-{% endif %}</td>
+            <td>{{ a.fecha }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="4">No hay materiales asignados</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

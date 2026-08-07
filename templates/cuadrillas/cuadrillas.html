@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2>Cuadrillas</h2>
+
+<a href="/crear_cuadrilla/" class="btn btn-primary mb-3">
+Agregar Cuadrilla
+</a>
+
+<table class="table table-striped">
+
+<thead class="table-dark">
+
+<tr>
+
+<th>ID</th>
+<th>Nombre</th>
+<th>Acciones</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+{% for cuadrilla in cuadrillas %}
+
+<tr>
+
+<td>{{ cuadrilla.id }}</td>
+<td>{{ cuadrilla.nombre }}</td>
+
+<td>
+
+<a href="/editar_cuadrilla/{{cuadrilla.id}}/" class="btn btn-warning btn-sm">
+Editar
+</a>
+
+<a href="/eliminar_cuadrilla/{{cuadrilla.id}}/" class="btn btn-danger btn-sm">
+Eliminar
+</a>
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+{% endblock %}

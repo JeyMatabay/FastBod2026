@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Proveedores</h2>
+    <a href="{% url 'crear_proveedor' %}" class="btn btn-success">
+      <i class="bi bi-plus-circle"></i> Nuevo Proveedor
+    </a>
+  </div>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  {% if proveedores %}
+  <div class="table-responsive">
+    <table class="table table-striped table-hover align-middle">
+      <thead class="table-dark">
+        <tr>
+          <th>#</th>
+          <th>Nombre</th>
+          <th>RUC / NIT</th>
+          <th>Teléfono</th>
+          <th>Email</th>
+          <th>Dirección</th>
+          <th>Productos</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in proveedores %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ p.nombre }}</td>
+          <td>{{ p.ruc|default:"-" }}</td>
+          <td>{{ p.telefono|default:"-" }}</td>
+          <td>{{ p.email|default:"-" }}</td>
+          <td>{{ p.direccion|default:"-" }}</td>
+          <td>{{ p.producto_set.count }}</td>
+          <td>
+            <a href="{% url 'editar_proveedor' p.id %}" class="btn btn-sm btn-warning">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <button type="button" class="btn btn-sm btn-danger"
+              data-bs-toggle="modal" data-bs-target="#modalEliminar{{ p.id }}">
+              <i class="bi bi-trash"></i>
+            </button>
+          </td>
+        </tr>
+
+        <!-- Modal confirmar eliminar -->
+        <div class="modal fade" id="modalEliminar{{ p.id }}" tabindex="-1">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">Eliminar Proveedor</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                ¿Eliminar el proveedor <strong>{{ p.nombre }}</strong>?
+                {% if p.producto_set.count %}
+                  <div class="alert alert-warning mt-2 mb-0">
+                    Este proveedor tiene {{ p.producto_set.count }} producto(s) asociado(s).
+                    Al eliminarlo, esos productos quedarán sin proveedor.
+                  </div>
+                {% endif %}
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="POST" action="{% url 'eliminar_proveedor' p.id %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-danger">Eliminar</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="alert alert-info">No hay proveedores registrados.</div>
+  {% endif %}
+</div>
+{% endblock %}

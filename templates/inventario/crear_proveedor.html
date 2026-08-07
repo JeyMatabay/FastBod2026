@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4" style="max-width:600px;">
+  <h2>Nuevo Proveedor</h2>
+
+  {% if form.errors %}
+  <div class="alert alert-danger">Revise los campos marcados.</div>
+  {% endif %}
+
+  <form method="POST">
+    {% csrf_token %}
+    <div class="card p-4">
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Nombre *</label>
+        {{ form.nombre }}
+        {% if form.nombre.errors %}<div class="text-danger small">{{ form.nombre.errors }}</div>{% endif %}
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-semibold">RUC / NIT</label>
+        {{ form.ruc }}
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Teléfono</label>
+        {{ form.telefono }}
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Email</label>
+        {{ form.email }}
+        {% if form.email.errors %}<div class="text-danger small">{{ form.email.errors }}</div>{% endif %}
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Dirección</label>
+        {{ form.direccion }}
+      </div>
+      <div class="d-grid gap-2">
+        <button type="submit" class="btn btn-success">Guardar Proveedor</button>
+        <a href="{% url 'lista_proveedores' %}" class="btn btn-secondary">Cancelar</a>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}

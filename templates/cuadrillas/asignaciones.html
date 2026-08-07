@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+<h2>Material Asignado a Cuadrillas</h2>
+
+<table class="table table-striped">
+
+<thead class="table-dark">
+
+<tr>
+
+<th>Cuadrilla</th>
+<th>Producto</th>
+<th>Cantidad</th>
+<th>Metraje</th>
+<th>Fecha</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+{% for a in asignaciones %}
+
+<tr>
+
+<td>{{ a.cuadrilla }}</td>
+<td>{{ a.producto }}</td>
+<td>{{ a.cantidad }}</td>
+<td>{% if a.metraje > 0 %}{{ a.metraje|floatformat:2 }} m{% else %}-{% endif %}</td>
+<td>{{ a.fecha }}</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+</div>
+
+{% endblock %}

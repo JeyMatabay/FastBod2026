@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2>Soporte Tecnico</h2>
+
+<a href="/crear_soporte/" class="btn btn-primary mb-3">
+Agregar Tecnico
+</a>
+
+<table class="table table-striped">
+
+<thead class="table-dark">
+
+<tr>
+
+<th>ID</th>
+<th>Nombre</th>
+<th>Responsable</th>
+<th>Acciones</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+{% for soporte in soportes %}
+
+<tr>
+
+<td>{{ soporte.id }}</td>
+<td>{{ soporte.nombre }}</td>
+<td>{{ soporte.responsable.username }}</td>
+
+<td>
+
+<a href="/editar_soporte/{{soporte.id}}/" class="btn btn-warning btn-sm">
+Editar
+</a>
+
+<a href="/eliminar_soporte/{{soporte.id}}/" class="btn btn-danger btn-sm">
+Eliminar
+</a>
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+{% endblock %}

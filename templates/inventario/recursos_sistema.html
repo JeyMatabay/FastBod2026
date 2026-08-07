@@ -1,0 +1,219 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+    <div>
+        <h2 class="mb-1"><i class="bi bi-cpu me-2"></i>Recursos del sistema</h2>
+        <div class="text-muted">Monitoreo en tiempo real del servidor donde corre el sistema.</div>
+    </div>
+    <div class="text-end">
+        <div class="small text-muted">Ultima actualizacion</div>
+        <div id="ultimaActualizacion" class="fw-semibold">{{ snapshot.timestamp_texto }}</div>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4 border-primary">
+    <div class="card-body">
+        <h5 class="card-title mb-3">Consumo de Django</h5>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <tbody>
+                    <tr>
+                        <th style="width: 240px;">CPU del proceso</th>
+                        <td><span id="processCpuPercent" class="badge bg-primary">{{ snapshot.process_cpu_percent }}%</span></td>
+                        <td class="text-muted">Uso de CPU que esta consumiendo Django en este momento.</td>
+                    </tr>
+                    <tr>
+                        <th>Memoria del proceso</th>
+                        <td id="processMemory">{{ snapshot.process_memory }}</td>
+                        <td class="text-muted">RAM usada por el proceso de Python/Django.</td>
+                    </tr>
+                    <tr>
+                        <th>Hilos activos</th>
+                        <td id="processThreads">{{ snapshot.process_threads }}</td>
+                        <td class="text-muted">Threads internos en ejecucion.</td>
+                    </tr>
+                    <tr>
+                        <th>Archivos abiertos</th>
+                        <td id="openFiles">{{ snapshot.open_files|default:'N/D' }}</td>
+                        <td class="text-muted">Archivos que el proceso tiene abiertos.</td>
+                    </tr>
+                    <tr>
+                        <th>Tiempo activo del proceso</th>
+                        <td id="processUptime">{{ snapshot.process_uptime }}</td>
+                        <td class="text-muted">Tiempo desde que levantaste este servidor Django.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h5 class="card-title mb-3">Estado general</h5>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <tbody>
+                    <tr>
+                        <th style="width: 240px;">CPU</th>
+                        <td><span id="cpuPercentBadge" class="badge bg-dark">{{ snapshot.cpu_percent }}%</span></td>
+                        <td class="text-muted">Uso total del procesador en este momento.</td>
+                    </tr>
+                    <tr>
+                        <th>Nucleos fisicos</th>
+                        <td id="cpuPhysical">{{ snapshot.cpu_count_physical }}</td>
+                        <td class="text-muted">Cantidad real de nucleos del equipo.</td>
+                    </tr>
+                    <tr>
+                        <th>Nucleos logicos</th>
+                        <td id="cpuLogical">{{ snapshot.cpu_count_logical }}</td>
+                        <td class="text-muted">Cantidad de hilos de CPU expuestos por el sistema.</td>
+                    </tr>
+                    <tr>
+                        <th>Memoria RAM usada</th>
+                        <td id="memoryUsed">{{ snapshot.memory_used }}</td>
+                        <td class="text-muted">RAM ocupada por el sistema operativo y procesos activos.</td>
+                    </tr>
+                    <tr>
+                        <th>Memoria RAM total</th>
+                        <td id="memoryTotal">{{ snapshot.memory_total }}</td>
+                        <td class="text-muted">Total de memoria disponible en el servidor.</td>
+                    </tr>
+                    <tr>
+                        <th>Memoria RAM %</th>
+                        <td><span id="memoryPercentBadge" class="badge bg-primary">{{ snapshot.memory_percent }}%</span></td>
+                        <td class="text-muted">Porcentaje de RAM utilizada.</td>
+                    </tr>
+                    <tr>
+                        <th>Disco usado</th>
+                        <td id="diskUsed">{{ snapshot.disk_used }}</td>
+                        <td class="text-muted">Espacio ocupado en la unidad donde corre el proyecto.</td>
+                    </tr>
+                    <tr>
+                        <th>Disco total</th>
+                        <td id="diskTotal">{{ snapshot.disk_total }}</td>
+                        <td class="text-muted">Capacidad total de la unidad.</td>
+                    </tr>
+                    <tr>
+                        <th>Disco %</th>
+                        <td><span id="diskPercentBadge" class="badge bg-success">{{ snapshot.disk_percent }}%</span></td>
+                        <td class="text-muted">Porcentaje de espacio utilizado.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <h5 class="card-title mb-3">Sistema</h5>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <tbody>
+                    <tr>
+                        <th>Tiempo encendido del servidor</th>
+                        <td id="systemUptime">{{ snapshot.system_uptime }}</td>
+                        <td class="text-muted">Tiempo desde el ultimo reinicio de Windows.</td>
+                    </tr>
+                    <tr>
+                        <th>Actualizacion automatica</th>
+                        <td>5 segundos</td>
+                        <td class="text-muted">La pantalla se refresca sola sin recargar la pagina.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if snapshot.postgres %}
+<div class="card shadow-sm mt-4 border-success">
+    <div class="card-body">
+        <h5 class="card-title mb-3">PostgreSQL</h5>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <tbody>
+                    <tr>
+                        <th style="width: 240px;">Tamano de la base</th>
+                        <td id="pgDatabaseSize">{{ snapshot.postgres.database_size }}</td>
+                        <td class="text-muted">Espacio que ocupa la base de datos actual.</td>
+                    </tr>
+                    <tr>
+                        <th>Conexiones activas</th>
+                        <td id="pgActiveConnections">{{ snapshot.postgres.active_connections }}</td>
+                        <td class="text-muted">Sesiones ejecutando trabajo en este momento.</td>
+                    </tr>
+                    <tr>
+                        <th>Conexiones en espera</th>
+                        <td id="pgWaitingConnections">{{ snapshot.postgres.waiting_connections }}</td>
+                        <td class="text-muted">Sesiones esperando algun evento o recurso.</td>
+                    </tr>
+                    <tr>
+                        <th>Cache hit ratio</th>
+                        <td><span id="pgCacheHitRatio" class="badge bg-success">{{ snapshot.postgres.cache_hit_ratio }}%</span></td>
+                        <td class="text-muted">Porcentaje de lecturas atendidas desde cache.</td>
+                    </tr>
+                    <tr>
+                        <th>Deadlocks</th>
+                        <td id="pgDeadlocks">{{ snapshot.postgres.deadlocks }}</td>
+                        <td class="text-muted">Bloqueos mutuos detectados por el motor.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+function actualizarTexto(id, valor) {
+    var el = document.getElementById(id);
+    if (el) {
+        el.textContent = valor;
+    }
+}
+
+async function refrescarRecursos() {
+    try {
+        const response = await fetch('{% url "recursos_sistema_data" %}', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            cache: 'no-store'
+        });
+        if (!response.ok) {
+            return;
+        }
+
+        const data = await response.json();
+        actualizarTexto('ultimaActualizacion', data.timestamp_texto);
+        actualizarTexto('cpuPercentBadge', data.cpu_percent + '%');
+        actualizarTexto('cpuPhysical', data.cpu_count_physical);
+        actualizarTexto('cpuLogical', data.cpu_count_logical);
+        actualizarTexto('processCpuPercent', data.process_cpu_percent + '%');
+        actualizarTexto('memoryUsed', data.memory_used);
+        actualizarTexto('memoryTotal', data.memory_total);
+        actualizarTexto('memoryPercentBadge', data.memory_percent + '%');
+        actualizarTexto('diskUsed', data.disk_used);
+        actualizarTexto('diskTotal', data.disk_total);
+        actualizarTexto('diskPercentBadge', data.disk_percent + '%');
+        actualizarTexto('processMemory', data.process_memory);
+        actualizarTexto('processThreads', data.process_threads);
+        actualizarTexto('openFiles', data.open_files === null ? 'N/D' : data.open_files);
+        actualizarTexto('processUptime', data.process_uptime);
+        actualizarTexto('systemUptime', data.system_uptime);
+        if (data.postgres) {
+            actualizarTexto('pgDatabaseSize', data.postgres.database_size);
+            actualizarTexto('pgActiveConnections', data.postgres.active_connections);
+            actualizarTexto('pgWaitingConnections', data.postgres.waiting_connections);
+            actualizarTexto('pgCacheHitRatio', data.postgres.cache_hit_ratio + '%');
+            actualizarTexto('pgDeadlocks', data.postgres.deadlocks);
+        }
+    } catch (error) {
+        console.error('No se pudieron refrescar los recursos del sistema.', error);
+    }
+}
+
+setInterval(refrescarRecursos, 5000);
+</script>
+{% endblock %}

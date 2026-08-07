@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+<h2>Inventario por Modelo</h2>
+
+<table class="table table-striped">
+
+<thead class="table-dark">
+
+<tr>
+<th>Marca</th>
+<th>Modelo</th>
+<th>Disponible en bodega</th>
+<th>Tipo detalle</th>
+<th>Detalle</th>
+<th>Producto</th>
+<th>Accion</th>
+</tr>
+
+</thead>
+
+<tbody>
+
+{% for m in modelos %}
+
+<tr>
+
+<td>{{ m.marca }}</td>
+
+<td>{{ m.modelo }}</td>
+
+<td><span class="badge text-bg-primary">{{ m.stock }}</span></td>
+
+<td>{{ m.tipo_detalle }}</td>
+
+<td>
+{% if m.activo %}
+{{ m.detalle_valor }}
+{% else %}
+<span class="text-muted">{{ m.detalle_valor }}</span>
+{% endif %}
+</td>
+
+<td>{{ m.nombre_producto }}</td>
+
+<td>
+<a href="/producto/{{ m.id }}/?estado=bodega" class="btn btn-outline-primary btn-sm">Ver detalle</a>
+</td>
+
+</tr>
+
+{% empty %}
+<tr>
+<td colspan="7" class="text-center">No hay material disponible en bodega.</td>
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+</div>
+
+{% endblock %}

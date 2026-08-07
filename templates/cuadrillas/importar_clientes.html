@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2 class="mb-4">Importar Base de Clientes</h2>
+
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}">
+{{ message }}
+</div>
+{% endfor %}
+{% endif %}
+
+<div class="card shadow-sm">
+<div class="card-body">
+<p class="mb-3"><strong>Clientes registrados:</strong> {{ total_clientes }}</p>
+
+<form method="POST" enctype="multipart/form-data" class="row g-2 align-items-end">
+{% csrf_token %}
+<div class="col-md-8">
+<label class="form-label">Archivo de clientes</label>
+<input type="file" name="archivo_clientes" class="form-control" accept=".csv,.xlsx" required>
+<small class="text-muted">Use columnas CT, Cedula y Nombre (en cualquier orden). Si no hay encabezados, se toma la columna A como Nombre. Formato permitido: CSV o XLSX.</small>
+</div>
+<div class="col-md-4 d-grid">
+<button type="submit" class="btn btn-primary">Importar clientes</button>
+</div>
+</form>
+</div>
+</div>
+
+{% endblock %}

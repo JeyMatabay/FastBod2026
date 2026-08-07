@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+<h2>Buscar Producto</h2>
+
+<form method="GET">
+
+<div class="row g-2">
+<div class="col-md-6">
+<input type="text" name="nombre" value="{{ nombre }}" class="form-control" placeholder="Nombre del producto">
+</div>
+<div class="col-md-6">
+<input type="text" name="codigo" value="{{ codigo }}" class="form-control" placeholder="Código producto">
+</div>
+</div>
+
+<div class="row g-2 mt-1">
+<div class="col-12">
+<label class="form-label fw-semibold mb-1">Buscar por Serial o MAC (búsqueda global)</label>
+<input type="text" name="identificador" value="{{ identificador }}" class="form-control" placeholder="Ingrese el serial o MAC exacto">
+</div>
+</div>
+
+<button class="btn btn-primary mt-2">Buscar</button>
+
+</form>
+
+{% if identificador and resultado_identificador %}
+<div class="alert alert-success mt-3">
+  <strong>{{ resultado_identificador.tipo }}:</strong> {{ resultado_identificador.valor }} &mdash;
+  Producto: <strong>{{ resultado_identificador.producto.nombre }}</strong>
+  (Código: {{ resultado_identificador.producto.codigo }})
+</div>
+{% elif identificador and not resultado_identificador %}
+<div class="alert alert-warning mt-3">
+  No se encontró ningún producto con el serial / MAC <strong>{{ identificador }}</strong>.
+</div>
+{% endif %}
+
+{% if resultados_identificadores %}
+<div class="table-responsive mt-4">
+<table class="table table-striped table-bordered">
+<thead class="table-dark">
+<tr>
+<th>Producto</th>
+<th>Codigo equipo</th>
+<th>Serial/MAC</th>
+<th>Estado</th>
+<th>Cliente/Cuadrilla</th>
+<th>Tipo de uso</th>
+<th>Fecha</th>
+<th>Accion</th>
+</tr>
+</thead>
+<tbody>
+{% for item in resultados_identificadores %}
+<tr>
+<td>{{ item.producto_nombre }} ({{ item.producto_codigo }})</td>
+<td>{{ item.codigo_individual|default:'-' }}</td>
+<td>{{ item.tipo }}: {{ item.valor }}</td>
+<td>{{ item.estado }}</td>
+<td>{{ item.cliente }}</td>
+<td>{{ item.tipo_uso }}</td>
+<td>{{ item.fecha_movimiento }}</td>
+<td>
+<a href="/producto/{{ item.producto_id }}/?estado={{ item.filtro_estado }}" class="btn btn-info btn-sm">Ver detalle</a>
+</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% endif %}
+
+{% if productos %}
+
+<div class="table-responsive mt-4">
+<table class="table table-striped">
+<thead class="table-dark">
+<tr>
+<th>Codigo</th>
+<th>Producto</th>
+<th>Categoria</th>
+<th>Stock</th>
+<th>Fecha ingreso</th>
+<th>Fecha pedido factura</th>
+<th>Accion</th>
+</tr>
+</thead>
+<tbody>
+{% for producto in productos %}
+<tr>
+<td>{{ producto.codigo }}</td>
+<td>{{ producto.nombre }}</td>
+<td>{{ producto.categoria }}</td>
+<td>{{ producto.stock }}</td>
+<td>{{ producto.fecha_ingreso }}</td>
+<td>{{ producto.fecha_pedido_factura|default:'-' }}</td>
+<td>
+<a href="/producto/{{producto.id}}/" class="btn btn-info btn-sm">Ver detalle</a>
+</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+
+{% elif codigo or nombre or identificador %}
+{% if not resultados_identificadores %}
+<div class="alert alert-warning mt-4 mb-0">
+No se encontraron productos para la busqueda.
+</div>
+{% endif %}
+
+{% endif %}
+
+</div>
+
+{% endblock %}

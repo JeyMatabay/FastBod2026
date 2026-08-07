@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container mt-4">
+
+<h2>Operaciones detalladas</h2>
+
+<form method="GET" class="mt-2 mb-3">
+<div class="row g-2 align-items-end">
+<div class="col-md-4 col-lg-3">
+<label class="form-label mb-1">Filtrar por estado</label>
+<select name="estado" class="form-select" onchange="this.form.submit()">
+<option value="" {% if not filtro_estado %}selected{% endif %}>Todos los estados</option>
+<option value="bodega" {% if filtro_estado == 'bodega' %}selected{% endif %}>Bodega</option>
+<option value="utilizado" {% if filtro_estado == 'utilizado' %}selected{% endif %}>Utilizado</option>
+<option value="cuadrilla" {% if filtro_estado == 'cuadrilla' %}selected{% endif %}>Cuadrilla</option>
+</select>
+</div>
+</div>
+</form>
+
+{% if filtro_estado == 'bodega' %}
+<div class="alert alert-info mt-3">
+Mostrando {{ cantidad_mostrada }} de {{ cantidad_registrada }} identificadores (solo bodega).
+</div>
+{% elif filtro_estado == 'utilizado' %}
+<div class="alert alert-info mt-3">
+Mostrando {{ cantidad_mostrada }} de {{ cantidad_registrada }} identificadores utilizados.
+</div>
+{% elif filtro_estado == 'cuadrilla' %}
+<div class="alert alert-info mt-3">
+Mostrando {{ cantidad_mostrada }} de {{ cantidad_registrada }} identificadores en cuadrilla.
+</div>
+{% else %}
+<div class="alert alert-light mt-3">
+Mostrando {{ cantidad_mostrada }} de {{ cantidad_registrada }} identificadores.
+</div>
+{% endif %}
+
+{% if messages %}
+	{% for message in messages %}
+	<div class="alert alert-info mt-3">{{ message }}</div>
+	{% endfor %}
+{% endif %}
+
+<div class="card mt-3">
+	<div class="card-body">
+		<div class="row">
+			<div class="col-md-6">
+				<p><strong>Producto:</strong> {{ producto.nombre }} ({{ producto.codigo }})</p>
+				<p><strong>Categoria:</strong> {{ producto.categoria }}</p>
+				{% if producto.proveedor %}
+				<p><strong>Proveedor:</strong> {{ producto.proveedor.nombre }}</p>
+				{% endif %}
+				<p><strong>Fecha pedido factura:</strong> {{ producto.fecha_pedido_factura|default:'-' }}</p>
+				<p><strong>Stock disponible:</strong> {{ producto.stock }} unidades</p>
+				{% if es_metraje %}
+				<p><strong>Metraje disponible:</strong> {{ producto.metraje|floatformat:2 }} m</p>
+				{% endif %}
+				<p><strong>Cantidad registrada:</strong> {{ cantidad_registrada }} unidades</p>
+			</div>
+			<div class="col-md-6">
+				{% if es_activo %}
+				<h5>Subir Serial / MAC</h5>
+				<form method="POST" class="row g-2">
+					{% csrf_token %}
+					<input type="hidden" name="accion" value="manual">
+					<div class="col-md-3">
+						{{ form_identificador.tipo }}
+					</div>
+					<div class="col-md-3">
+						{{ form_identificador.codigo_individual }}
+					</div>
+					<div class="col-md-4">
+						{{ form_identificador.valor }}
+					</div>
+					<div class="col-md-2 d-grid">
+						<button class="btn btn-success" type="submit">Validar</button>
+					</div>
+				</form>
+
+				<hr>
+
+				<h5>Importar archivo Excel / CSV</h5>
+				<form method="POST" enctype="multipart/form-data" class="row g-2">
+					{% csrf_token %}
+					<input type="hidden" name="accion" value="masivo">
+					<div class="col-md-3">
+						<select name="tipo_masivo" class="form-control" required>
+							<option value="">Tipo</option>
+							<option value="SERIAL">Serial</option>
+							<option value="MAC">MAC</option>
+						</select>
+					</div>
+					<div class="col-md-6">
+						<input type="file" name="archivo_identificadores" class="form-control" accept=".csv,.xlsx" required>
+						<small class="text-muted">Columna A: codigo por equipo (unico). Columna B: MAC o Serial (sin repetir).</small>
+					</div>
+					<div class="col-md-3 d-grid">
+						<button class="btn btn-primary" type="submit">Importar</button>
+					</div>
+				</form>
+				{% elif es_cable_metraje %}
+				<h5>Registrar cable/fibra con codigo unico y metraje</h5>
+				<form method="POST" class="row g-2">
+					{% csrf_token %}
+					<input type="hidden" name="accion" value="manual">
+					<div class="col-md-5">
+						<input type="text" name="codigo_individual" class="form-control" placeholder="Codigo unico" required>
+					</div>
+					<div class="col-md-5">
+						<input type="number" name="metraje_individual" class="form-control" min="0" step="0.01" placeholder="Metraje por unidad" required>
+					</div>
+					<div class="col-md-2 d-grid">
+						<button class="btn btn-success" type="submit">Guardar</button>
+					</div>
+				</form>
+
+				<hr>
+
+				<h5>Importar archivo Excel / CSV</h5>
+				<form method="POST" enctype="multipart/form-data" class="row g-2">
+					{% csrf_token %}
+					<input type="hidden" name="accion" value="masivo">
+					<div class="col-md-9">
+						<input type="file" name="archivo_identificadores" class="form-control" accept=".csv,.xlsx" required>
+						<small class="text-muted">Columna A: codigo unico. Columna B: metraje por unidad.</small>
+					</div>
+					<div class="col-md-3 d-grid">
+						<button class="btn btn-primary" type="submit">Importar</button>
+					</div>
+				</form>
+					{% elif es_codigo_unico %}
+					<h5>Registrar codigo unico</h5>
+					<form method="POST" class="row g-2">
+						{% csrf_token %}
+						<input type="hidden" name="accion" value="manual">
+						<div class="col-md-10">
+							<input type="text" name="codigo_individual" class="form-control" placeholder="Codigo unico" required>
+						</div>
+						<div class="col-md-2 d-grid">
+							<button class="btn btn-success" type="submit">Guardar</button>
+						</div>
+					</form>
+
+					<hr>
+
+					<h5>Importar archivo Excel / CSV</h5>
+					<form method="POST" enctype="multipart/form-data" class="row g-2">
+						{% csrf_token %}
+						<input type="hidden" name="accion" value="masivo">
+						<div class="col-md-9">
+							<input type="file" name="archivo_identificadores" class="form-control" accept=".csv,.xlsx" required>
+							<small class="text-muted">Columna A: codigo unico (obligatorio). Columna B: opcional.</small>
+						</div>
+						<div class="col-md-3 d-grid">
+							<button class="btn btn-primary" type="submit">Importar</button>
+						</div>
+					</form>
+				{% else %}
+				<div class="alert alert-secondary mb-0">
+					Este producto no requiere carga de identificadores.
+				</div>
+				{% endif %}
+			</div>
+		</div>
+
+		<hr>
+
+		<div class="table-responsive">
+			<table class="table table-bordered table-striped">
+				<thead class="table-dark">
+					<tr>
+						<th>Tipo</th>
+						<th>Codigo equipo</th>
+						<th>Lote/N de serie</th>
+						{% if es_metraje %}<th>Metraje</th>{% endif %}
+						<th>Estado</th>
+						<th>Realizado</th>
+						<th>Fecha</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for item in identificadores %}
+					<tr>
+						<td>{{ item.tipo }}</td>
+						<td>{{ item.codigo_individual|default:'-' }}</td>
+						<td>{{ item.valor }}</td>
+						{% if es_metraje %}<td>{% if item.metraje > 0 %}{{ item.metraje|floatformat:2 }} m{% else %}-{% endif %}</td>{% endif %}
+						<td>{{ item.estado }}</td>
+						<td>1</td>
+						<td>{{ item.fecha_registro }}</td>
+					</tr>
+					{% empty %}
+					<tr>
+						<td colspan="{% if es_metraje %}7{% else %}6{% endif %}" class="text-center">Sin registros de identificadores.</td>
+					</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		</div>
+
+		<a href="{% if es_construccion %}/productos-construccion/{% else %}/productos/{% endif %}" class="btn btn-secondary">Volver</a>
+		<a href="/editar_producto/{{ producto.id }}/" class="btn btn-warning">Editar</a>
+	</div>
+</div>
+
+</div>
+
+{% endblock %}
