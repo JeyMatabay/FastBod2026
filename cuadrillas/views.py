@@ -110,6 +110,8 @@ def _extraer_campos_observacion(observacion):
         'sector': '',
         'coord_punta_inicial': '',
         'coord_punta_final': '',
+        'coord_cliente': '',
+        'coord_caja': '',
     }
 
     if not texto:
@@ -131,8 +133,49 @@ def _extraer_campos_observacion(observacion):
             resultado['coord_punta_inicial'] = valor
         elif clave in ['coord punta final', 'coordenada punta final', 'coordenadas punta final']:
             resultado['coord_punta_final'] = valor
+        elif clave in ['coord cliente', 'coordenada cliente', 'coordenadas cliente']:
+            resultado['coord_cliente'] = valor
+        elif clave in ['coord caja', 'coordenada caja', 'coordenadas caja']:
+            resultado['coord_caja'] = valor
 
     return resultado
+
+
+def _detalle_observacion_sin_coordenadas(observacion):
+    texto = str(observacion or '').strip()
+    if not texto:
+        return ''
+
+    claves_coord = {
+        'coordenadas',
+        'sector',
+        'coord punta inicial',
+        'coordenada punta inicial',
+        'coordenadas punta inicial',
+        'coord punta final',
+        'coordenada punta final',
+        'coordenadas punta final',
+        'coord cliente',
+        'coordenada cliente',
+        'coordenadas cliente',
+        'coord caja',
+        'coordenada caja',
+        'coordenadas caja',
+    }
+
+    partes_visibles = []
+    for parte in [p.strip() for p in texto.split('|') if p.strip()]:
+        if ':' not in parte:
+            partes_visibles.append(parte)
+            continue
+
+        clave_raw, _ = parte.split(':', 1)
+        clave = _normalizar_texto(clave_raw).lower()
+        if clave in claves_coord:
+            continue
+        partes_visibles.append(parte)
+
+    return ' | '.join(partes_visibles)
 
 
 def _extraer_coordenadas_sector(observacion):
@@ -1067,6 +1110,8 @@ def dar_baja_material(request, asignacion_id):
     modelo_retirado = (request.POST.get('modelo_retirado') or '').strip()
     coordenadas_baja = (request.POST.get('coordenadas_baja') or '').strip()
     sector_baja = (request.POST.get('sector_baja') or '').strip()
+    coord_cliente = (request.POST.get('coord_cliente') or '').strip()
+    coord_caja = (request.POST.get('coord_caja') or '').strip()
     coord_punta_inicial = (request.POST.get('coord_punta_inicial') or '').strip()
     coord_punta_final = (request.POST.get('coord_punta_final') or '').strip()
     activo = es_categoria_activa(asignacion.producto.categoria.nombre if asignacion.producto.categoria else '')
@@ -1118,6 +1163,16 @@ def dar_baja_material(request, asignacion_id):
             f'Coord punta final: {coord_punta_final}',
         ]
         observacion = f"{observacion} | {' | '.join(coordenadas_punta)}" if observacion else ' | '.join(coordenadas_punta)
+
+    if es_fibra or activo:
+        coordenadas_extra = []
+        if coord_cliente:
+            coordenadas_extra.append(f'Coord cliente: {coord_cliente}')
+        if coord_caja:
+            coordenadas_extra.append(f'Coord caja: {coord_caja}')
+        if coordenadas_extra:
+            bloque = ' | '.join(coordenadas_extra)
+            observacion = f"{observacion} | {bloque}" if observacion else bloque
 
     cliente = None
     if cliente_nombre:
@@ -1551,11 +1606,13 @@ def historial_bajas(request):
             'codigo': baja.producto_codigo or baja.asignacion.producto.codigo,
             'cliente': baja.cliente_nombre or (baja.cliente.nombre if baja.cliente else ''),
             'tipo_uso': baja.tipo_uso,
-            'observacion': baja.observacion,
+            'observacion': _detalle_observacion_sin_coordenadas(baja.observacion),
             'coordenadas': coordenadas,
             'sector': sector,
             'coord_punta_inicial': observacion_campos.get('coord_punta_inicial', ''),
             'coord_punta_final': observacion_campos.get('coord_punta_final', ''),
+            'coord_cliente': observacion_campos.get('coord_cliente', ''),
+            'coord_caja': observacion_campos.get('coord_caja', ''),
             'cantidad': baja.cantidad,
             'punta_inicial': baja.punta_inicial,
             'punta_final': baja.punta_final,
@@ -2303,6 +2360,8 @@ def reporte_historial_bajas_excel(request):
             'Punta final',
             'Coord punta inicial',
             'Coord punta final',
+            'Coord cliente',
+            'Coord caja',
             'Codigo bobina',
             'Metraje',
             'MAC',
@@ -2340,11 +2399,12 @@ def reporte_historial_bajas_excel(request):
                 baja.observacion or '',
             ])
         else:
+            observacion_campos = _extraer_campos_observacion(baja.observacion)
             ws.append([
                 timezone.localtime(baja.fecha).strftime('%d/%m/%Y %H:%M'),
                 baja.cliente_nombre or (baja.cliente.nombre if baja.cliente else ''),
                 baja.tipo_uso,
-                baja.observacion,
+                _detalle_observacion_sin_coordenadas(baja.observacion),
                 baja.asignacion.cuadrilla.nombre,
                 baja.producto_nombre or baja.asignacion.producto.nombre,
                 baja.asignacion.producto.proveedor.nombre if baja.asignacion.producto.proveedor else '',
@@ -2353,8 +2413,10 @@ def reporte_historial_bajas_excel(request):
                 baja.estado_equipo or '',
                 float(baja.punta_inicial or 0),
                 float(baja.punta_final or 0),
-                _extraer_campos_observacion(baja.observacion).get('coord_punta_inicial', ''),
-                _extraer_campos_observacion(baja.observacion).get('coord_punta_final', ''),
+                observacion_campos.get('coord_punta_inicial', ''),
+                observacion_campos.get('coord_punta_final', ''),
+                observacion_campos.get('coord_cliente', ''),
+                observacion_campos.get('coord_caja', ''),
                 baja.codigo_bobina or '',
                 float(baja.metraje or 0),
                 baja.detalle_mac,

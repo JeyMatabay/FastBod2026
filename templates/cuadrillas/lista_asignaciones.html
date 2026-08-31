@@ -399,6 +399,20 @@ No aplica
 					</div>
 					{% endif %}
 
+					{% if m.es_fibra or m.es_activo %}
+					<div class="mb-3">
+						<label class="form-label">Coordenadas opcionales</label>
+						<div class="row g-2">
+							<div class="col-md-6">
+								<input type="text" name="coord_cliente" class="form-control" maxlength="120" placeholder="Coordenadas del cliente (opcional)">
+							</div>
+							<div class="col-md-6">
+								<input type="text" name="coord_caja" class="form-control" maxlength="120" placeholder="Coordenadas de la caja (opcional)">
+							</div>
+						</div>
+					</div>
+					{% endif %}
+
 					{% if not m.es_construccion %}
 					<div class="mb-3 d-none" id="observacionCambioWrap{{ forloop.parentloop.counter }}_{{ forloop.counter }}">
 						<label class="form-label">Detalle del cambio</label>

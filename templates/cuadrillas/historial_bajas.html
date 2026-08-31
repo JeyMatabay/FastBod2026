@@ -203,6 +203,8 @@ Deslice horizontalmente para ver todas las columnas.
 <th class="col-corto">Punta final</th>
 <th>Coord. punta inicial</th>
 <th>Coord. punta final</th>
+<th>Coord. cliente</th>
+<th>Coord. caja</th>
 <th class="col-corto">Codigo bobina</th>
 <th class="col-corto">Metraje</th>
 <th>MAC</th>
@@ -253,6 +255,8 @@ Deslice horizontalmente para ver todas las columnas.
 <td class="col-corto">{% if b.punta_final > 0 %}{{ b.punta_final|floatformat:2 }} m{% else %}-{% endif %}</td>
 <td>{% if b.coord_punta_inicial %}{{ b.coord_punta_inicial }}{% else %}-{% endif %}</td>
 <td>{% if b.coord_punta_final %}{{ b.coord_punta_final }}{% else %}-{% endif %}</td>
+<td>{% if b.coord_cliente %}{{ b.coord_cliente }}{% else %}-{% endif %}</td>
+<td>{% if b.coord_caja %}{{ b.coord_caja }}{% else %}-{% endif %}</td>
 <td class="col-corto">{{ b.codigo_bobina|default:'-' }}</td>
 <td class="col-corto">{% if b.metraje > 0 %}{{ b.metraje|floatformat:2 }} m{% else %}-{% endif %}</td>
 <td>{% if b.detalle_mac %}{{ b.detalle_mac }}{% else %}No aplica{% endif %}</td>
